@@ -93,10 +93,12 @@ git add deepseek-harness && git commit
 
 从 VS Code 的终端启动 exe 会继承 `ELECTRON_RUN_AS_NODE=1`，exe 被当成纯 Node 跑（`bad option`）；用 `env -u ELECTRON_RUN_AS_NODE` 启动。双击不受影响。
 
+## License
+
+The code in this repository is licensed under the MIT License, see `LICENSE`. `offline/` also contains material under the MIT License with its own copyright notice, see `offline/LICENSE`. `deepseek-harness/` is a submodule of the official DeepSeek Harness repository and stays under that repository's license. The MIT License does not cover the names, marks and images described below.
+
 ## Trademarks and intellectual property
 
 NERVDOG, Nervdog, 紧张狗, Nervdog Tech and NERVDOG Harness, the NERVDOG wordmark, and the husky character together with every icon and image derived from it are trademarks and intellectual property of Shanghai Nervdog Technology Co., Ltd. ("Nervdog Tech"). All rights reserved. Neither this repository nor any license that applies to its code grants a license to them. Do not use, copy, modify or distribute them, or use them in a way that suggests affiliation with or endorsement by Nervdog Tech, without prior written permission.
 
 DeepSeek and DeepSeek Harness are trademarks of their respective owners. This project is not affiliated with or endorsed by them.
-
-The files in `offline/` include material under the MIT License; its copyright and permission notice is in `offline/LICENSE`.
