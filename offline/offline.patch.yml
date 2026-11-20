@@ -1,0 +1,91 @@
+# Offline home patch: bin/dsh copies it to $DSH_HOME/cordis.patch.yml.
+#
+# The home patch applies to every profile (web, headless, sdk, sdk-minimal,
+# acp, desktop) after the profile's own patch, so Web settings cannot re-enable
+# what is disabled here. Rows absent from a profile print a harmless
+# `patch: entry "<id>" not found` line; check.mjs fails only when a target is
+# absent from every profile, which means upstream renamed or removed it.
+#
+# A `config:` patch replaces the row's whole upstream config. check.mjs fails
+# when upstream config of a row this file configures differs from
+# upstream-config.json; merge the new upstream fields here, then run
+# `node offline/check.mjs --accept` to record them.
+#
+# Kept: model requests and the fields that ride on them (session-log-deepseek,
+# plugin-package-inventory-deepseek). They go only to the model base URL below.
+
+# ── Model endpoint: never fall back to api.deepseek.com ─────────────────────
+# Order: exported DEEPSEEK_BASE_URL, then the first line of
+# $DSH_HOME/offline-model-base-url, then loopback. The launcher rejects
+# DEEPSEEK_BASE_URL in .env files. The Models page cannot override this row:
+# the home patch outranks the profile patch that settings forms write. Web search
+# (`deepseek-search-api`) follows this route's origin (`<origin>/v1/tools`),
+# so it uses the model provider's search or fails against loopback.
+# The other fields restate the sdk-minimal bundle's row (upstream-config.json);
+# undefined keeps the plugin default in the other profiles.
+# The row is disabled: the deepseek-official provider route and the first-run
+# "Add an API key" prompt are absent, so configure another provider on the
+# Models page. The config stays so that removing `disabled` restores the
+# proxy route, never api.deepseek.com.
+- id: llm-deepseek
+  disabled: true
+  config:
+    baseURL: !!js "process.env.DEEPSEEK_BASE_URL || (() => { try { return process.getBuiltinModule('node:fs').readFileSync(process.getBuiltinModule('node:path').join(process.env.DSH_HOME || process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:os').homedir(), '.dsh'), 'offline-model-base-url'), 'utf8').trim() } catch { return '' } })() || 'http://127.0.0.1:9/anthropic'"
+    apiKeyEnv: DEEPSEEK_API_KEY
+    defaultContextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 1000000)
+    streamIdleTimeoutMs: !!js "ctx.get('profileContext')?.name === 'sdk-minimal' ? 172800000 : undefined"
+
+# ── Telemetry and analytics ─────────────────────────────────────────────────
+- id: otel
+  disabled: true
+- id: session-telemetry-otel
+  disabled: true
+- id: desktop-product-telemetry
+  disabled: true
+- id: product-analytics
+  disabled: true
+
+# ── DeepSeek account sign-in (platform.deepseek.com, harness.deepseek.com) ──
+# deepseek-account also serves the `account` Remote namespace (sign-in,
+# profile, balance, notifications) that account-controller served before.
+# The desktop app reads `account/state` while it boots
+# (apps/desktop/src/welcome-backend.ts) and stops at "Loading plugins" without
+# it, so the row stays on with every DeepSeek origin on the loopback discard
+# port: the namespace answers, and an account request cannot leave this
+# machine. Sign-in UI, account model route and notifications stay disabled
+# below. desktopPlatform restates the upstream value
+# (packages/bundle/base/cordis.patch.yml); check.mjs accepts this package only
+# while all three origins are loopback.
+- id: deepseek-account
+  config:
+    desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
+    platformOrigin: https://127.0.0.1:9
+    harnessOrigin: https://127.0.0.1:9
+    inferenceOrigin: https://127.0.0.1:9
+- id: llm-deepseek-account
+  disabled: true
+# Also carries the feishu.cn contact form link.
+- id: ui-settings-account
+  disabled: true
+# Polls account notifications from harness.deepseek.com through deepseek-account.
+- id: ui-account-notifications
+  disabled: true
+
+# ── Web search and fetch ────────────────────────────────────────────────────
+# Legacy Messages search defaults to api.deepseek.com independently of the
+# model route.
+- id: web-search-deepseek
+  disabled: true
+# The upstream `web` row already selects local fetch (`http`, direct HTTP from
+# this machine) and leaves search on the DeepSeek route: `deepseek-search-api`,
+# or since upstream f47a0a2b52 no explicit provider, which resolves to the same
+# DeepSeek search and fails while that route is disabled. check.mjs asserts
+# those values instead of restating the row here.
+
+# ── Plugin installation (npm registries, CDNs) ──────────────────────────────
+# Installs and registry lookups go only to loopback until you set your own
+# registry here.
+- id: plugin-manager
+  config:
+    registry: 'http://127.0.0.1:9/'
+    fallbackRegistries: []

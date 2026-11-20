@@ -1,0 +1,68 @@
+#!/bin/sh
+# NERVDOG Harness launcher: starts DeepSeek Harness from its source checkout with offline/offline.patch.yml as the home
+# patch. The home patch is kept as a copy, not a symbolic link (Windows without Developer Mode cannot create one): before
+# every start this compares $DSH_HOME/cordis.patch.yml with offline/offline.patch.yml and copies it when they differ. A
+# cordis.patch.yml that is not an earlier copy of the offline patch is never overwritten.
+# The harness checkout is $DSH_HARNESS_DIR, else the deepseek-harness submodule of this repository. Needs Node.js 24.9 or later
+# first on PATH. Runs in Git Bash on Windows and in sh on macOS / Linux.
+set -eu
+
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case "$link" in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+here=$(cd "$(dirname "$self")/.." && pwd -P)
+
+want=${DSH_HARNESS_DIR:-"$here/deepseek-harness"}
+if ! root=$(cd "$want" 2>/dev/null && pwd -P); then
+  echo "error: harness directory $want not found; run git submodule update --init or set DSH_HARNESS_DIR" >&2
+  exit 1
+fi
+if [ ! -f "$root/apps/cli/src/bin.ts" ]; then
+  echo "error: $root is not a deepseek-harness checkout (no apps/cli/src/bin.ts); set DSH_HARNESS_DIR" >&2
+  exit 1
+fi
+if [ ! -f "$root/node_modules/tsx/dist/esm/index.mjs" ]; then
+  echo "error: run 'pnpm install' in $root first" >&2
+  exit 1
+fi
+
+if ! node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 24 || (a === 24 && b >= 9) ? 0 : 1)' 2>/dev/null; then
+  echo "error: node $(node -v 2>/dev/null || echo missing) is too old; put Node.js 24.9 or later first on PATH" >&2
+  exit 1
+fi
+
+source="$here/offline/offline.patch.yml"
+home=${DSH_HOME:-"$HOME/.dsh"}
+patch="$home/cordis.patch.yml"
+mkdir -p "$home"
+if [ ! -e "$patch" ]; then
+  cp "$source" "$patch"
+  echo "installed: $patch (copy of $source)" >&2
+elif ! cmp -s "$source" "$patch"; then
+  case "$(head -n 1 "$patch")" in
+    "# Offline home patch:"*) ;;
+    *)
+      echo "error: $patch is not a copy of $source; merge its rows into the offline patch, then remove it" >&2
+      exit 1
+      ;;
+  esac
+  cp "$source" "$patch"
+  echo "updated: $patch (copy of $source)" >&2
+fi
+
+if command -v cygpath >/dev/null 2>&1; then
+  tsconfig=$(cygpath -w "$root/tsconfig.json")
+  loader="file:///$(cygpath -m "$root/node_modules/tsx/dist/esm/index.mjs")"
+  entry=$(cygpath -w "$root/apps/cli/src/bin.ts")
+else
+  tsconfig="$root/tsconfig.json"
+  loader="$root/node_modules/tsx/dist/esm/index.mjs"
+  entry="$root/apps/cli/src/bin.ts"
+fi
+export TSX_TSCONFIG_PATH="$tsconfig"
+exec node --import "$loader" "$entry" "$@"

@@ -1,0 +1,15 @@
+{
+  "web/llm-deepseek": "",
+  "web/deepseek-account": "desktopPlatform: !!js \"ctx.get('profileContext')?.name === 'desktop' &&\n['darwin', 'win32'].includes(process.platform) ? process.platform : null\"",
+  "web/plugin-manager": "",
+  "headless/llm-deepseek": "",
+  "headless/deepseek-account": "desktopPlatform: !!js \"ctx.get('profileContext')?.name === 'desktop' &&\n['darwin', 'win32'].includes(process.platform) ? process.platform : null\"",
+  "headless/plugin-manager": "",
+  "sdk/llm-deepseek": "",
+  "sdk/deepseek-account": "desktopPlatform: !!js \"ctx.get('profileContext')?.name === 'desktop' &&\n['darwin', 'win32'].includes(process.platform) ? process.platform : null\"",
+  "sdk/plugin-manager": "",
+  "sdk-minimal/llm-deepseek": "apiKeyEnv: DEEPSEEK_API_KEY\ndefaultContextWindow: !!js Number(process.env.DSH_CONTEXT_WINDOW ?? 1000000)\nstreamIdleTimeoutMs: 172800000",
+  "acp/llm-deepseek": "",
+  "acp/deepseek-account": "desktopPlatform: !!js \"ctx.get('profileContext')?.name === 'desktop' &&\n['darwin', 'win32'].includes(process.platform) ? process.platform : null\"",
+  "acp/plugin-manager": ""
+}
